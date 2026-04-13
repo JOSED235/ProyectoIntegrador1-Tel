@@ -1,2 +1,3 @@
 # ProyectoIntegrador1-Tel
 DISEÑO E IMPLEMENTACIÓN DE UN SISTEMA BASADO EN ESP32 PARA LA MEDICIÓN DEL TEMBLOR EN MANOS EN LA PRUEBA DE LA ESPIRAL DE ARQUÍMEDES
+Miembro: Jose David Rodriguez Pinilla - Ingenieria Telematica
