@@ -8,12 +8,12 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "C:/Users/Fa1097la/OneDrive - Universidad Icesi/Quinto Semestre/Integrador1/ProyectoFinal/hardware/include",
-                "C:/Users/Fa1097la/OneDrive - Universidad Icesi/Quinto Semestre/Integrador1/ProyectoFinal/hardware/src",
+                "C:/Users/Fa1097la/OneDrive - Universidad Icesi/Quinto Semestre/Integrador1/ProyectoIntegrador1-Tel/hardware/include",
+                "C:/Users/Fa1097la/OneDrive - Universidad Icesi/Quinto Semestre/Integrador1/ProyectoIntegrador1-Tel/hardware/src",
                 "C:/Users/Fa1097la/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src",
                 "C:/Users/Fa1097la/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                 "C:/Users/Fa1097la/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
-                "C:/Users/Fa1097la/OneDrive - Universidad Icesi/Quinto Semestre/Integrador1/ProyectoFinal/hardware/.pio/libdeps/esp32dev/Arduino_JSON/src",
+                "C:/Users/Fa1097la/OneDrive - Universidad Icesi/Quinto Semestre/Integrador1/ProyectoIntegrador1-Tel/hardware/.pio/libdeps/esp32dev/Arduino_JSON/src",
                 "C:/Users/Fa1097la/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                 "C:/Users/Fa1097la/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                 "C:/Users/Fa1097la/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",
@@ -245,12 +245,12 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "C:/Users/Fa1097la/OneDrive - Universidad Icesi/Quinto Semestre/Integrador1/ProyectoFinal/hardware/include",
-                    "C:/Users/Fa1097la/OneDrive - Universidad Icesi/Quinto Semestre/Integrador1/ProyectoFinal/hardware/src",
+                    "C:/Users/Fa1097la/OneDrive - Universidad Icesi/Quinto Semestre/Integrador1/ProyectoIntegrador1-Tel/hardware/include",
+                    "C:/Users/Fa1097la/OneDrive - Universidad Icesi/Quinto Semestre/Integrador1/ProyectoIntegrador1-Tel/hardware/src",
                     "C:/Users/Fa1097la/.platformio/packages/framework-arduinoespressif32/libraries/HTTPClient/src",
                     "C:/Users/Fa1097la/.platformio/packages/framework-arduinoespressif32/libraries/WiFiClientSecure/src",
                     "C:/Users/Fa1097la/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
-                    "C:/Users/Fa1097la/OneDrive - Universidad Icesi/Quinto Semestre/Integrador1/ProyectoFinal/hardware/.pio/libdeps/esp32dev/Arduino_JSON/src",
+                    "C:/Users/Fa1097la/OneDrive - Universidad Icesi/Quinto Semestre/Integrador1/ProyectoIntegrador1-Tel/hardware/.pio/libdeps/esp32dev/Arduino_JSON/src",
                     "C:/Users/Fa1097la/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                     "C:/Users/Fa1097la/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                     "C:/Users/Fa1097la/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",

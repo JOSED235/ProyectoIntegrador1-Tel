@@ -3,24 +3,21 @@
 #include <Arduino_JSON.h>
 #include <math.h>
 
-
-//const char* ssid = "LABREDES";
-//const char* password = "F0rmul4-1";
-
+const char* ssid = "LABREDES";
+const char* password = "F0rmul4-1";
 
 
 
 
 
-const char* ssid = "MAROARR";
-const char* password = "Girare193819410";
+//const char* ssid = "A54 de Jose David";
+//const char* password = "123456789";
 
-const char* serverUrl = "http://192.168.1.2:8001/captura";
+const char* serverUrl = "http://192.168.130.48:8001/captura";
 
-const uint16_t SAMPLE_RATE_HZ = 250;
-const uint32_t SAMPLE_PERIOD_US = 1000000UL / SAMPLE_RATE_HZ; // 4000 us
-
-const int BUFFER_SIZE = 50;   // 50 muestras = 200 ms a 250 Hz
+const uint16_t SAMPLE_RATE_HZ = 100;
+const uint32_t SAMPLE_PERIOD_US = 1000000UL / SAMPLE_RATE_HZ; // 10000 us
+const int BUFFER_SIZE = 20;
 
 struct Sample {
   uint32_t seq;
@@ -40,12 +37,12 @@ uint32_t seqCounter = 1;
 uint32_t sessionStartUs = 0;
 uint32_t nextSampleTimeUs = 0;
 
-// ---------------- DECLARACIONES ----------------
+//  DECLARACIONES 
 void initWiFi();
 void acquireSample();
 void sendBatch(int count);
 
-// ---------------- SETUP ----------------
+//  SETUP 
 void setup() {
   Serial.begin(115200);
   delay(1000);
@@ -64,7 +61,7 @@ void setup() {
   Serial.println(" us");
 }
 
-// ---------------- LOOP ----------------
+//  LOOP 
 void loop() {
   uint32_t nowUs = micros();
 
@@ -84,7 +81,7 @@ void loop() {
   }
 }
 
-// ---------------- WIFI ----------------
+//  WIFI 
 void initWiFi() {
   WiFi.begin(ssid, password);
   Serial.print("Conectando a WiFi");
@@ -99,7 +96,7 @@ void initWiFi() {
   Serial.println(WiFi.localIP());
 }
 
-// ---------------- ADQUISICION DE MUESTRA ----------------
+//  ADQUISICION DE MUESTRA 
 void acquireSample() {
   Sample s;
 
@@ -125,7 +122,7 @@ void acquireSample() {
   bufferIndex++;
 }
 
-// ---------------- ENVIO DE LOTE ----------------
+//  ENVIO DE LOTE 
 void sendBatch(int count) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi desconectado, no se puede enviar lote");
