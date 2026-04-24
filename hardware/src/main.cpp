@@ -14,7 +14,7 @@ const char* password = "Girare193819410";
 //const char* ssid = "A54 de Jose David";
 //const char* password = "123456789";
 
-const char* serverUrl = "http://192.168.1.7:8001/captura";
+const char* serverUrl = "http://192.168.1.6:8001/captura";
 
 
 #define BTN_PIN  0
