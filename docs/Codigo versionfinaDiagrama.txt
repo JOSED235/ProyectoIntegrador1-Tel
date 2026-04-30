@@ -1,0 +1,77 @@
+@startuml
+title Diagrama de Despliegue - Sistema Completo
+top to bottom direction
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+' ═══════════════════════════════════════
+' CAPA 1 — Sensores
+' ═══════════════════════════════════════
+node "LSM303DLHC" <<device>> as LSM {
+    artifact "Aceleración X,Y,Z\nCampo magnético X,Y,Z"
+}
+
+node "MPU6050" <<device>> as MPU {
+    artifact "Aceleración X,Y,Z\nVelocidad angular X,Y,Z"
+}
+
+node "FSR402" <<device>> as FSR {
+    artifact "Presión / Fuerza"
+}
+
+' ═══════════════════════════════════════
+' CAPA 2 — ESP32 + Cliente
+' ═══════════════════════════════════════
+node "ESP32 DevKit" <<device>> as ESP {
+    artifact "Firmware\n- Muestreo\n- Buffer\n- JSON\n- HTTP + MQTT"
+}
+
+node "Navegador Web" <<device>> as WEB {
+    artifact "Cliente\nVisualización"
+}
+
+' ═══════════════════════════════════════
+' CAPA 3 — Docker
+' ═══════════════════════════════════════
+node "Docker" {
+
+    node "Mosquitto (MQTT)" as MQTT {
+        artifact "Broker\nsensor/data"
+    }
+
+    node "Frontend" as FRONT {
+        artifact "Web App\nGráficas"
+    }
+
+    node "Backend (FastAPI)" as BACK {
+        artifact "API\nValidación\nPersistencia"
+    }
+
+    database "PostgreSQL" as DB {
+        artifact "Tablas:\n- capture_sessions\n- sensor_samples"
+    }
+}
+
+' ═══════════════════════════════════════
+' FLUJOS
+' ═══════════════════════════════════════
+
+' Sensores → ESP32
+LSM --> ESP
+MPU --> ESP
+FSR --> ESP
+
+' ESP32 → Backend
+ESP --> BACK : HTTP POST /captura
+ESP --> MQTT : MQTT publish
+
+MQTT --> BACK : subscribe
+
+' Backend → DB
+BACK --> DB
+
+' Frontend
+WEB --> FRONT
+FRONT --> BACK
+
+@enduml

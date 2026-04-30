@@ -1,0 +1,125 @@
+@startuml
+title Diagrama de Despliegue - Sistema Completo\nCaptura, transmisión, almacenamiento y visualización
+
+' =========================
+' CONFIGURACIÓN VISUAL
+' =========================
+skinparam linetype ortho
+top to bottom direction
+
+skinparam nodesep 80
+skinparam ranksep 100
+skinparam padding 15
+
+skinparam componentStyle rectangle
+skinparam nodeStyle rectangle
+
+skinparam shadowing false
+skinparam roundcorner 10
+
+' =========================
+'  CAPA 1 — Sensores físicos
+' =========================
+node "LSM303DLHC" <<device>> {
+    artifact "Sensor de orientación\n- Aceleración X,Y,Z\n- Campo magnético X,Y,Z" as LSM_Art
+}
+
+node "MPU6050" <<device>> {
+    artifact "Sensor inercial principal\n- Aceleración X,Y,Z\n- Velocidad angular X,Y,Z" as MPU_Art
+}
+
+node "FSR402" <<device>> {
+    artifact "Sensor de presión\n- Fuerza / presión aplicada" as FSR_Art
+}
+
+' Mantener alineación sin alterar conexiones
+LSM303DLHC -[hidden]down- MPU6050
+MPU6050 -[hidden]down- FSR402
+
+' =========================
+'  CAPA 2 — Dispositivos de borde
+' =========================
+node "ESP32 DevKit" <<device>> {
+    artifact "Firmware embebido\n- Lectura de sensores\n- Muestreo (100 Hz)\n- Control inicio/fin (botón)\n- Buffer de muestras\n- Empaquetado JSON\n- Publicación MQTT\n- Envío HTTP POST" as ESP_Art
+}
+
+node "Navegador Web" <<device>> {
+    artifact "Cliente\n- Visualización de sesiones\n- Consulta de historial" as Browser_Art
+}
+
+' =========================
+'  CAPA 3 — Entorno Docker
+' =========================
+node "Entorno Docker" <<execution environment>> {
+
+    node "Contenedor Mosquitto" <<container>> {
+        artifact "Broker MQTT\n- Recepción de mensajes\n- Tópico: sensor/data\n- Tópico: session/control" as MQTT_Art
+    }
+
+    node "Contenedor Frontend" <<container>> {
+        artifact "Aplicación Web\n- Visualización de señales\n- Historial de pruebas\n- Consulta por sesión\n- Gráficas de aceleración/giro" as Front_Art
+    }
+
+    node "Contenedor Backend" <<container>> {
+        node "API FastAPI" {
+            artifact "Endpoints\n- POST /captura\n- GET /sesiones\n- GET /sesiones/{id}\n- GET /sesiones/{id}/muestras\n- MQTT subscriber" as API_Art
+        }
+        node "Módulo de validación" {
+            artifact "Validación del payload\n- session_id / device_id\n- sample_rate_hz\n- samples[]\n  · mpu6050 {ax,ay,az,gx,gy,gz}\n  · lsm_accel {ax,ay,az}\n  · lsm_mag {mx,my,mz}\n  · pressure\n- Tipos de datos" as Val_Art
+        }
+        node "Módulo de persistencia" {
+            artifact "Lógica de almacenamiento\n- Inserción de dispositivo\n- Inserción de sesión\n- Inserción de batch\n- Inserción de muestras\n- Registro de transmisión\n- Cálculo de métricas" as Pers_Art
+        }
+    }
+
+    database "Contenedor PostgreSQL" <<container>> {
+        artifact "Tablas\n- device\n- capture_sessions\n- batch\n- sensor_samples\n- transmission_log\n- metrics" as DB_Art
+    }
+}
+
+' =========================
+'  NOTAS
+' =========================
+note right of "ESP32 DevKit"
+  Flujo 1:
+  Captura de datos desde los sensores,
+  procesamiento en el ESP32
+  y transmisión al backend.
+end note
+
+note right of "Contenedor Backend"
+  Flujo 2:
+  El backend recibe, valida
+  y almacena los datos capturados.
+end note
+
+note right of "Contenedor Frontend"
+  Flujo 3:
+  El frontend consulta el backend
+  y visualiza los datos al usuario.
+end note
+
+' =========================
+'  CONEXIONES (SIN CAMBIOS)
+' =========================
+"LSM303DLHC" -down-> "ESP32 DevKit" : aceleración y\ncampo magnético
+"MPU6050"    -down-> "ESP32 DevKit" : aceleración y giro
+"FSR402"     -down-> "ESP32 DevKit" : datos de presión
+
+"ESP32 DevKit" -right-> "Contenedor Mosquitto" : MQTT publish\ntópico: sensor/data
+"ESP32 DevKit" -right-> "API FastAPI"           : HTTP POST /captura\nJSON batch
+
+"Contenedor Mosquitto" -down-> "API FastAPI" : MQTT subscribe\nred docker interna
+
+"API FastAPI"            -down-> "Módulo de validación"
+"Módulo de validación"   -down-> "Módulo de persistencia"
+"Módulo de persistencia" -down-> "Contenedor PostgreSQL"
+
+"Navegador Web"       -down-> "Contenedor Frontend" : HTTP
+"Contenedor Frontend" -down-> "API FastAPI"          : HTTP GET\nred docker interna
+
+"Contenedor Backend"   .. "Contenedor PostgreSQL"
+"Contenedor Backend"   .. "Contenedor Mosquitto"
+"Contenedor Frontend"  .. "Contenedor Backend"
+
+@enduml
