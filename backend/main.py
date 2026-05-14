@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from typing import List
+from fastapi.middleware.cors import CORSMiddleware
 
 from database import engine, SessionLocal, Base
 import models
@@ -11,6 +11,14 @@ app = FastAPI()
 # Crea las tablas en la base de datos si no existen
 models.Base.metadata.create_all(bind=engine)
 
+# CORS — permite que el frontend en localhost:5173 consuma el backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/")
 def root():
@@ -20,7 +28,6 @@ def root():
 # Endpoint para recibir datos del ESP32 (HTTP POST)
 @app.post("/captura")
 def recibir_datos(data: schemas.Capture):
-    # Log de depuración para ver qué llega del hardware
     print(f"Recibiendo lote de: {data.device_id} - Sesión: {data.session_id}")
 
     db = SessionLocal()
@@ -54,11 +61,10 @@ def obtener_datos_crudos(session_id: str):
     db = SessionLocal()
     try:
         muestras = get_capture_data(db, session_id)
-        
+
         if not muestras:
             raise HTTPException(status_code=404, detail="No se encontraron datos para esta sesión")
-        
-        # Retorna el JSON crudo tal como lo solicitaste
+
         return {
             "session_id": session_id,
             "count": len(muestras),

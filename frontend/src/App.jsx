@@ -1,79 +1,184 @@
-import { Send, Wifi, WifiOff } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import client from './services/mqttService';
+import { useEffect, useRef, useState } from 'react'
+import { Wifi, WifiOff, Radio, Send } from 'lucide-react'
+import SessionList from './components/SessionList'
+import RawDataView from './components/RawDataView'
+import client from './services/mqttService'
 
 function App() {
-  const [status, setStatus] = useState('Desconectado');
-  const [lastMessage, setLastMessage] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null)
+  const [mqttStatus, setMqttStatus]           = useState('Desconectado')
+  const [mqttLog, setMqttLog]                 = useState([])
+  const [topic, setTopic]                     = useState('sensor/control')
+  const [mensaje, setMensaje]                 = useState('')
 
+  const logRef = useRef(null)
+
+  // ── MQTT ──────────────────────────────────────────────
   useEffect(() => {
-    // Definimos los listeners una sola vez
     const onConnect = () => {
-      console.log('Conectado con éxito');
-      setStatus('Conectado');
-      client.subscribe('icesi/proyecto/test');
-    };
-
-    const onError = (err) => {
-      console.error('Error de conexión:', err);
-      setStatus('Error');
-    };
-
-    const onMessage = (topic, message) => {
-      setLastMessage(message.toString());
-    };
-
-    client.on('connect', onConnect);
-    client.on('error', onError);
-    client.on('message', onMessage);
-
-    // Si ya está conectado (por el Singleton), actualizamos el estado
-    if (client.connected) setStatus('Conectado');
-
-    // Limpieza: quitamos los listeners pero NO cerramos la conexión del cliente
-    // para evitar el error de "client disconnecting" en el doble renderizado
-    return () => {
-      client.off('connect', onConnect);
-      client.off('error', onError);
-      client.off('message', onMessage);
-    };
-  }, []);
-
-  const enviarPrueba = () => {
-    if (client.connected) {
-      const payload = { 
-        msg: "Prueba desde Icesi", 
-        timestamp: new Date().toLocaleTimeString() 
-      };
-      client.publish('icesi/proyecto/test', JSON.stringify(payload));
+      setMqttStatus('Conectado')
+      client.subscribe('sensor/data')
+      client.subscribe('sensor/control')
+      agregarLog('sistema', 'Conectado al broker MQTT')
     }
-  };
+
+    const onError = () => {
+      setMqttStatus('Error')
+      agregarLog('error', 'Error de conexión MQTT')
+    }
+
+    const onMessage = (t, payload) => {
+      agregarLog('entrada', `[${t}] ${payload.toString()}`)
+    }
+
+    client.on('connect', onConnect)
+    client.on('error', onError)
+    client.on('message', onMessage)
+
+    if (client.connected) {
+      setMqttStatus('Conectado')
+    }
+
+    return () => {
+      client.off('connect', onConnect)
+      client.off('error', onError)
+      client.off('message', onMessage)
+    }
+  }, [])
+
+  // Auto-scroll del log MQTT
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight
+    }
+  }, [mqttLog])
+
+  const agregarLog = (tipo, texto) => {
+    const hora = new Date().toLocaleTimeString()
+    setMqttLog((prev) => [...prev.slice(-49), { tipo, texto, hora }])
+  }
+
+  const publicar = () => {
+    if (!mensaje.trim() || mqttStatus !== 'Conectado') return
+    client.publish(topic, mensaje)
+    agregarLog('salida', `[${topic}] ${mensaje}`)
+    setMensaje('')
+  }
+
+  const publicarComando = (cmd) => {
+    const payload = JSON.stringify({ comando: cmd, ts: Date.now() })
+    client.publish('sensor/control', payload)
+    agregarLog('salida', `[sensor/control] ${payload}`)
+  }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-10">
-      <div className="max-w-md mx-auto bg-slate-800 p-6 rounded-2xl border border-slate-700">
-        <h1 className="text-xl font-bold mb-4 flex items-center gap-2">
-          {status === 'Conectado' ? <Wifi className="text-green-400" /> : <WifiOff className="text-red-400" />}
-          Status: {status}
-        </h1>
+    <div className="app">
 
-        <button 
-          onClick={enviarPrueba}
-          disabled={status !== 'Conectado'}
-          className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 rounded-xl font-bold flex items-center justify-center gap-2"
-        >
-          <Send size={18} /> Publicar en MQTT
-        </button>
-
-        <div className="mt-6">
-          <p className="text-xs text-slate-400 mb-2 uppercase">Monitor de mensajes:</p>
-          <pre className="bg-black/50 p-4 rounded-lg text-sm text-blue-300 min-h-[100px]">
-            {lastMessage || "// Esperando datos del tópico..."}
-          </pre>
+      {/* ── HEADER ── */}
+      <header className="app__header">
+        <div className="header__titulo">
+          <Radio size={20} />
+          <span>Sistema de Captura de Temblor</span>
         </div>
-      </div>
+        <div className={`header__mqtt-badge ${mqttStatus === 'Conectado' ? 'badge--on' : 'badge--off'}`}>
+          {mqttStatus === 'Conectado'
+            ? <><Wifi size={14} /> Conectado</>
+            : <><WifiOff size={14} /> {mqttStatus}</>
+          }
+        </div>
+      </header>
+
+      {/* ── LAYOUT PRINCIPAL ── */}
+      <main className="app__main">
+
+        {/* ── COLUMNA IZQUIERDA ── */}
+        <aside className="col-left">
+
+          {/* Panel sesiones */}
+          <section className="panel">
+            <h2 className="panel__titulo">Sesiones registradas</h2>
+            <SessionList
+              onSelect={setSelectedSession}
+              selectedId={selectedSession}
+            />
+          </section>
+
+          {/* Panel control MQTT */}
+          <section className="panel">
+            <h2 className="panel__titulo">Control MQTT</h2>
+
+            {/* Botones de comando rápido */}
+            <div className="mqtt-cmds">
+              <button
+                className="cmd-btn cmd-btn--start"
+                onClick={() => publicarComando('START')}
+                disabled={mqttStatus !== 'Conectado'}
+              >
+                ▶ START
+              </button>
+              <button
+                className="cmd-btn cmd-btn--stop"
+                onClick={() => publicarComando('STOP')}
+                disabled={mqttStatus !== 'Conectado'}
+              >
+                ■ STOP
+              </button>
+            </div>
+
+            {/* Publicación manual */}
+            <div className="mqtt-manual">
+              <input
+                className="mqtt-input"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="topic"
+              />
+              <input
+                className="mqtt-input"
+                value={mensaje}
+                onChange={(e) => setMensaje(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && publicar()}
+                placeholder="mensaje"
+              />
+              <button
+                className="mqtt-send"
+                onClick={publicar}
+                disabled={mqttStatus !== 'Conectado'}
+              >
+                <Send size={14} /> Publicar
+              </button>
+            </div>
+
+            {/* Log MQTT */}
+            <div className="mqtt-log" ref={logRef}>
+              {mqttLog.length === 0
+                ? <span className="texto-dim">// Sin actividad aún</span>
+                : mqttLog.map((entry, i) => (
+                    <div key={i} className={`log-line log-line--${entry.tipo}`}>
+                      <span className="log-hora">{entry.hora}</span>
+                      <span className="log-texto">{entry.texto}</span>
+                    </div>
+                  ))
+              }
+            </div>
+          </section>
+
+        </aside>
+
+        {/* ── COLUMNA DERECHA: JSON crudo ── */}
+        <section className="col-right panel">
+          <h2 className="panel__titulo">
+            Respuesta HTTP — JSON crudo
+            {selectedSession && (
+              <span className="panel__titulo-sub">{selectedSession}</span>
+            )}
+          </h2>
+          <RawDataView sessionId={selectedSession} />
+        </section>
+
+      </main>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
