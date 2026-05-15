@@ -3,6 +3,7 @@
 #include "core/TestManager.h"
 
 TestManager testManager;
+TestManager* globalTestManager = &testManager;
 
 void setup() {
 

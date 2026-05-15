@@ -130,6 +130,12 @@ void WiFiManager::reconnectIfNeeded() {
 
 void TestManager::startTest() {
 
+    if (testRunning) {
+
+        Serial.println("La prueba ya está corriendo.");
+        return;
+    }
+
     currentSessionId = generateSessionId();
 
     sessionStartUs = micros();
@@ -142,13 +148,47 @@ void TestManager::startTest() {
 
     testRunning = true;
 
-    
     Serial.println("PRUEBA INICIADA");
     Serial.println("Session ID: " + currentSessionId);
-    
 }
 
+bool TestManager::isRunning() {
+
+    return testRunning;
+}
+
+
+
+
 void TestManager::stopTest() {
+
+    if (!testRunning) {
+
+        Serial.println("No hay prueba activa.");
+        return;
+    }
+
+    if (!bufferManager.isEmpty()) {
+
+        httpService.sendBatch(
+            bufferManager.getBuffer(),
+            bufferManager.size(),
+            currentSessionId
+        );
+
+        mqttService.publishBatch(
+            bufferManager.getBuffer(),
+            bufferManager.size(),
+            currentSessionId
+        );
+
+        bufferManager.clear();
+    }
+
+    testRunning = false;
+
+    Serial.println("PRUEBA FINALIZADA");
+    Serial.println("Session ID: " + currentSessionId);
 
     if (!bufferManager.isEmpty()) {
 
@@ -173,7 +213,7 @@ void TestManager::stopTest() {
     
     Serial.println("PRUEBA FINALIZADA");
     Serial.println("Session ID: " + currentSessionId);
-    
+
 }
 
 void TestManager::acquireSample() {

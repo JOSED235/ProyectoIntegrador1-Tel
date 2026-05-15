@@ -1,5 +1,7 @@
 #include "MqttService.h"
+#include "../core/TestManager.h"
 
+extern TestManager* globalTestManager;
 #include "../models/Sample.h"
 #include "../config.h"
 
@@ -9,10 +11,17 @@
 WiFiClient MqttService::wifiClient;
 PubSubClient MqttService::client(wifiClient);
 
+
 void MqttService::begin() {
 
     client.setServer(MQTT_SERVER, 1883);
+
+    // IMPORTANTE:
+    // El payload JSON es grande
     client.setBufferSize(12000);
+
+    // CALLBACK PARA RECIBIR MENSAJES
+    client.setCallback(callback);
 
     while (!client.connected()) {
 
@@ -22,12 +31,21 @@ void MqttService::begin() {
 
             Serial.println("[MQTT] Conectado");
 
+            // SUSCRIBIRSE A TOPICS DE CONTROL
+            client.subscribe("sensor/control");
+
+            Serial.println("[MQTT] Suscrito a sensor/control");
+
         } else {
+
+            Serial.print("[MQTT] Error conexión. rc=");
+            Serial.println(client.state());
 
             delay(1000);
         }
     }
 }
+
 
 void MqttService::loop() {
 
@@ -41,7 +59,14 @@ void MqttService::loop() {
 
                 Serial.println("[MQTT] Reconectado");
 
+                client.subscribe("sensor/control");
+
+                Serial.println("[MQTT] Resuscrito a sensor/control");
+
             } else {
+
+                Serial.print("[MQTT] Error reconexión. rc=");
+                Serial.println(client.state());
 
                 delay(1000);
             }
@@ -50,6 +75,70 @@ void MqttService::loop() {
 
     client.loop();
 }
+
+
+void MqttService::callback(
+    char* topic,
+    byte* payload,
+    unsigned int length
+) {
+
+    Serial.println();
+    Serial.println(" MQTT MESSAGE ");
+
+    Serial.print("TOPIC: ");
+    Serial.println(topic);
+
+    String message = "";
+
+    for (unsigned int i = 0; i < length; i++) {
+
+        message += (char)payload[i];
+    }
+
+    Serial.print("PAYLOAD: ");
+    Serial.println(message);
+
+    // PARSEAR JSON
+    JSONVar json = JSON.parse(message);
+
+    if (JSON.typeof(json) == "undefined") {
+
+        Serial.println("[MQTT] JSON inválido");
+        return;
+    }
+
+    // EXTRAER COMANDO
+    String comando = (const char*) json["comando"];
+
+    Serial.print("[MQTT] Comando recibido: ");
+    Serial.println(comando);
+
+    if (comando == "START") {
+
+        Serial.println("[MQTT] Solicitud START recibida");
+            if (globalTestManager != nullptr) {
+
+                globalTestManager->startTest();
+            }
+
+    } else if (comando == "STOP") {
+
+        Serial.println("[MQTT] Solicitud STOP recibida");
+        
+        if (globalTestManager != nullptr) {
+                globalTestManager->stopTest();
+            }
+
+
+    } else {
+
+        Serial.println("[MQTT] Comando desconocido");
+    }
+
+    Serial.println();
+}
+
 
 bool MqttService::publishBatch(
     Sample* samples,
@@ -97,8 +186,22 @@ bool MqttService::publishBatch(
 
     String jsonString = JSON.stringify(payload);
 
-    return client.publish(
+    bool success = client.publish(
         "sensor/data",
         jsonString.c_str()
     );
+
+    if (success) {
+
+        Serial.printf(
+            "[MQTT] Batch publicado | muestras=%d\n",
+            count
+        );
+
+    } else {
+
+        Serial.println("[MQTT] Error publish");
+    }
+
+    return success;
 }

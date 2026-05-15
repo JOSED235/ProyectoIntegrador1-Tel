@@ -6,6 +6,7 @@
 #include "../services/HttpService.h"
 #include "../services/MqttService.h"
 
+
 class TestManager {
 
 private:
@@ -30,9 +31,7 @@ private:
 
     uint32_t lastDebounceMs;
 
-    void startTest();
-
-    void stopTest();
+    
 
     void handleButton();
 
@@ -41,7 +40,9 @@ private:
     String generateSessionId();
 
 public:
-
+    void startTest();
+    void stopTest();
+    bool isRunning();
     TestManager();
 
     void begin();
@@ -50,3 +51,4 @@ public:
 };
 
 #endif
+extern TestManager testManager;
