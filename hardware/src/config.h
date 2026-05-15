@@ -1,6 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
-
+#define MQTT_SERVER "192.168.1.6"
 #include <Arduino.h>
 
 
@@ -28,10 +28,10 @@ inline constexpr const char* SERVER_URL =
 
 
 
-inline constexpr const char* WIFI_SSID = "LABREDES";
+inline constexpr const char* WIFI_SSID = "MAROARR";
 
 inline constexpr const char* WIFI_PASSWORD =
-    "F0rmul4-1";
+    "Girare193819410";
 
 
 // BACKEND
@@ -39,8 +39,11 @@ inline constexpr const char* WIFI_PASSWORD =
 //192.168.130.33 es la ip del servidor en el laboratorio
 
 
+//ip del server en mi casa es 192.168.1.6
+
+
 inline constexpr const char* SERVER_URL =
-    "http://192.168.130.33:8001/captura";
+    "http://192.168.1.6:8001/captura";
 
 
 // PINES

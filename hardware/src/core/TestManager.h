@@ -4,6 +4,7 @@
 #include "../core/BufferManager.h"
 #include "../sensors/SensorManager.h"
 #include "../services/HttpService.h"
+#include "../services/MqttService.h"
 
 class TestManager {
 
@@ -13,6 +14,7 @@ private:
     SensorManager sensorManager;
     HttpService httpService;
     WiFiManager wifiManager;
+    MqttService mqttService;
 
     bool testRunning;
 

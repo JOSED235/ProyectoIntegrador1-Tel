@@ -27,6 +27,7 @@ void TestManager::begin() {
 
     sensorManager.begin();
     wifiManager.connect();
+    mqttService.begin();
 
     Serial.println("Sistema listo.");
     Serial.println("Presiona el botón para iniciar/detener prueba.");
@@ -34,6 +35,7 @@ void TestManager::begin() {
 
 void TestManager::update() {
     wifiManager.reconnectIfNeeded();
+    mqttService.loop();
     handleButton();
 
     if (!testRunning) return;
@@ -51,6 +53,12 @@ void TestManager::update() {
             // Opcional: reintentar una vez
             delay(200);
             httpService.sendBatch(tempBuffer, count, currentSessionId);
+        }
+
+        bool mqttSuccess = mqttService.publishBatch(tempBuffer, count, currentSessionId);
+        if (!mqttSuccess) {
+
+            Serial.println("Error MQTT publish.");
         }
 
         // Resetear el timing para no acumular muestras perdidas durante el envío
@@ -145,6 +153,13 @@ void TestManager::stopTest() {
     if (!bufferManager.isEmpty()) {
 
         httpService.sendBatch(
+            bufferManager.getBuffer(),
+            bufferManager.size(),
+            currentSessionId
+        );
+
+        mqttService.publishBatch(
+            
             bufferManager.getBuffer(),
             bufferManager.size(),
             currentSessionId
