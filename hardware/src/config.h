@@ -1,6 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
-#define MQTT_SERVER "192.168.130.46"
+#define MQTT_SERVER "broker.emqx.io"
 #include <Arduino.h>
 
 
@@ -28,8 +28,8 @@ inline constexpr const char* SERVER_URL =
 
 
 
-inline constexpr const char* WIFI_SSID = "LABREDES";
-inline constexpr const char* WIFI_PASSWORD ="F0rmul4-1";
+inline constexpr const char* WIFI_SSID = "MAROARR";
+inline constexpr const char* WIFI_PASSWORD ="Girare193819410";
 
 // BACKEND
 
@@ -39,7 +39,7 @@ inline constexpr const char* WIFI_PASSWORD ="F0rmul4-1";
 //ip del server en mi casa es 192.168.1.6
 
 
-inline constexpr const char* SERVER_URL =  "http://192.168.130.46:8001/captura";
+inline constexpr const char* SERVER_URL =  "http://192.168.1.7:8001/captura";
 
 // PINES
 
@@ -61,6 +61,6 @@ inline constexpr uint32_t SAMPLE_PERIOD_US = 1000000UL / SAMPLE_RATE_HZ;
 
 
 inline constexpr int BUFFER_SIZE =
-    20;
+    10;
 
 #endif

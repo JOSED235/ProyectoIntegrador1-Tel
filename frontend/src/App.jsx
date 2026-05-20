@@ -14,7 +14,7 @@ function App() {
 
   const [mqttLog, setMqttLog] = useState([])
 
-  const [topic, setTopic] = useState('sensor/control')
+  const [topic, setTopic] = useState('icesi/jose/esp32/control')
 
   const [mensaje, setMensaje] = useState('')
 
@@ -50,9 +50,9 @@ function App() {
 
       setMqttStatus('Conectado')
 
-      client.subscribe('sensor/data')
+      client.subscribe('icesi/jose/esp32/data')
 
-      client.subscribe('sensor/control')
+      client.subscribe('icesi/jose/esp32/control')
 
       agregarLog(
         'sistema',
@@ -107,7 +107,7 @@ function App() {
       )
 
       // DATOS LIVE DEL ESP32
-      if (topic === 'sensor/data') {
+      if (topic === 'icesi/jose/esp32/data') {
 
         try {
 
@@ -205,13 +205,13 @@ function App() {
     })
 
     client.publish(
-      'sensor/control',
+      'icesi/jose/esp32/control',
       payload
     )
 
     agregarLog(
       'salida',
-      `[sensor/control] ${payload}`
+      `[icesi/jose/esp32/control] ${payload}`
     )
   }
 

@@ -18,30 +18,32 @@ void MqttService::begin() {
 
     // IMPORTANTE:
     // El payload JSON es grande
-    client.setBufferSize(12000);
+    client.setBufferSize(8000);
 
     // CALLBACK PARA RECIBIR MENSAJES
     client.setCallback(callback);
+    String clientId = "esp32-" + String((uint32_t)ESP.getEfuseMac(), HEX);
+
 
     while (!client.connected()) {
 
         Serial.println("[MQTT] Conectando...");
 
-        if (client.connect("esp32-client")) {
+         if (client.connect(clientId.c_str())) {
 
             Serial.println("[MQTT] Conectado");
 
             // SUSCRIBIRSE A TOPICS DE CONTROL
-            client.subscribe("sensor/control");
+            client.subscribe("icesi/jose/esp32/control");
 
-            Serial.println("[MQTT] Suscrito a sensor/control");
+            Serial.println("[MQTT] Suscrito a icesi/jose/esp32/control");
 
         } else {
 
             Serial.print("[MQTT] Error conexión. rc=");
             Serial.println(client.state());
 
-            delay(1000);
+            delay(2000);
         }
     }
 }
@@ -52,10 +54,12 @@ void MqttService::loop() {
     if (!client.connected()) {
 
         Serial.println("[MQTT] Reconectando...");
+        String clientId =  "esp32-" + String((uint32_t)ESP.getEfuseMac(), HEX);
+                   
 
         while (!client.connected()) {
 
-            if (client.connect("esp32-client")) {
+            if (client.connect(clientId.c_str())) {
 
                 Serial.println("[MQTT] Reconectado");
 
@@ -186,10 +190,7 @@ bool MqttService::publishBatch(
 
     String jsonString = JSON.stringify(payload);
 
-    bool success = client.publish(
-        "sensor/data",
-        jsonString.c_str()
-    );
+    bool success = client.publish("icesi/jose/esp32/data", jsonString.c_str());
 
     if (success) {
 
