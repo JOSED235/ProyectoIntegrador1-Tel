@@ -20,7 +20,15 @@ public:
     static bool publishBatch(
         Sample* samples,
         int count,
-        String sessionId
+        String sessionId,
+        String patientName = "Anónimo"
+    );
+
+    // PUBLICAR ESTADO
+    static void publishStatus(
+        String status,
+        String sessionId = "",
+        String patientName = ""
     );
 
     // CALLBACK DE MENSAJES MQTT

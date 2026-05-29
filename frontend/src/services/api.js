@@ -1,17 +1,31 @@
 import axios from 'axios';
 
-// El backend corre en el puerto 8001 
 const api = axios.create({
   baseURL: 'http://localhost:8001',
 });
 
-// GET /sesiones — lista todas las sesiones registradas
+// PACIENTES
+export const getPatients = async () => {
+  const response = await api.get('/patients');
+  return response.data;
+};
+
+export const getPatient = async (id) => {
+  const response = await api.get(`/patients/${id}`);
+  return response.data;
+};
+
+export const createPatient = async (patient) => {
+  const response = await api.post('/patients', patient);
+  return response.data;
+};
+
+// SESIONES
 export const getSesiones = async () => {
   const response = await api.get('/sesiones');
   return response.data;
 };
 
-// GET /captura/{session_id} — datos crudos JSON de una sesión específica
 export const getCaptura = async (sessionId) => {
   const response = await api.get(`/captura/${sessionId}`);
   return response.data;

@@ -3,14 +3,28 @@ from sqlalchemy.orm import relationship
 
 from database import Base
 
+class Patient(Base):
+    __tablename__ = "patients"
+
+    id        = Column(String, primary_key=True, index=True)
+    name      = Column(String, nullable=False)
+    age       = Column(Integer, nullable=False)
+    gender    = Column(String, nullable=False)
+    notes     = Column(String, nullable=True)
+
+    sessions = relationship("CaptureSession", back_populates="patient", cascade="all, delete-orphan")
+
 
 class CaptureSession(Base):
     __tablename__ = "capture_sessions"
 
     id            = Column(String,  primary_key=True, index=True)
     device_id     = Column(String,  nullable=False)
+    patient_id    = Column(String,  ForeignKey("patients.id"), nullable=True)
+    patient_name  = Column(String,  nullable=True)
     sample_rate_hz = Column(Integer, nullable=False, default=100)
 
+    patient = relationship("Patient", back_populates="sessions")
     samples = relationship(
         "SensorSample",
         back_populates="session",

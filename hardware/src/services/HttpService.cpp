@@ -9,7 +9,7 @@ float HttpService::sanitizeFloat(float value) {
     return value;
 }
 
-bool HttpService::sendBatch(Sample* samples, int count, String sessionId) {
+bool HttpService::sendBatch(Sample* samples, int count, String sessionId, String patientName) {
 
     // VALIDAR WIFI
     if (WiFi.status() != WL_CONNECTED) {
@@ -28,6 +28,7 @@ bool HttpService::sendBatch(Sample* samples, int count, String sessionId) {
     JSONVar payload;
     payload["session_id"]     = sessionId.c_str();
     payload["device_id"]      = "esp32-devkit";
+    payload["patient_name"]   = patientName.c_str();
     payload["sample_rate_hz"] = SAMPLE_RATE_HZ;
 
     JSONVar samplesArray;

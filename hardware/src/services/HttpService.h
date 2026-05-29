@@ -6,7 +6,7 @@
 
 class HttpService {
 public:
-    bool sendBatch(Sample* samples, int count, String sessionId);
+    bool sendBatch(Sample* samples, int count, String sessionId, String patientName = "Anónimo");
 
 private:
     float sanitizeFloat(float value);

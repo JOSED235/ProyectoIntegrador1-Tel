@@ -1,0 +1,619 @@
+# Contexto del sistema
+
+El sistema propuesto corresponde a una plataforma tecnológica orientada a complementar la evaluación tradicional del temblor en manos durante la prueba de la espiral de Arquímedes. La solución integra un dispositivo basado en ESP32 junto con sensores inerciales y de presión para capturar variables del movimiento de la mano, transmitirlas a una plataforma backend, almacenarlas de forma estructurada y visualizarlas mediante una interfaz web.
+
+La plataforma busca apoyar el seguimiento del paciente mediante información objetiva obtenida durante la ejecución de la prueba, permitiendo al profesional de la salud consultar historiales, analizar gráficas y revisar el comportamiento registrado en distintas sesiones. El sistema no pretende reemplazar el criterio clínico, sino servir como una herramienta tecnológica de apoyo para mejorar la organización, consulta e interpretación de los datos asociados al movimiento de la mano.
+
+Los actores principales que interactúan con el sistema son:
+
+* Paciente: realiza la prueba y genera los datos capturados.
+* Profesional de la salud: consulta, analiza y da seguimiento a las pruebas realizadas.
+
+---
+
+# Backlog de Producto — Historias de Usuario
+
+# ÉPICA: Gestión de sesiones
+
+**Label GitHub:** `epic:sessions`
+
+---
+
+# HU-01 — Iniciar una prueba de captura
+
+## Título del Issue
+
+```text id="w9v7n5"
+HU-01 — Iniciar una prueba de captura
+```
+
+## Labels
+
+```text id="e9bs9j"
+epic:sessions
+backend
+frontend
+```
+
+## Descripción del Issue
+
+```md id="s8f3e9"
+## Historia de Usuario
+
+Como paciente  
+Quiero iniciar una prueba de captura del movimiento de mi mano  
+Para registrar objetivamente la ejecución de la espiral de Arquímedes.
+
+---
+
+## Descripción
+
+El sistema deberá crear una sesión única asociada al paciente antes de comenzar la adquisición de datos provenientes del ESP32.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Generar identificador único de sesión
+- [ ] Asociar muestras a la sesión activa
+- [ ] Registrar fecha y hora de inicio
+- [ ] Mostrar sesión en historial
+```
+
+---
+
+# HU-02 — Finalizar una prueba
+
+## Título del Issue
+
+```text id="v55tvq"
+HU-02 — Finalizar una prueba
+```
+
+## Labels
+
+```text id="ifm0nb"
+epic:sessions
+backend
+frontend
+```
+
+## Descripción del Issue
+
+```md id="f29tm8"
+## Historia de Usuario
+
+Como paciente  
+Quiero finalizar la prueba de captura  
+Para detener el registro de datos y guardar la sesión correctamente.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Detener adquisición de datos
+- [ ] Guardar sesión correctamente
+- [ ] Cambiar estado de sesión a finalizada
+- [ ] Mostrar sesión completada en historial
+```
+
+---
+
+# ÉPICA: Captura multisensor
+
+**Label GitHub:** `epic:sensors`
+
+---
+
+# HU-03 — Capturar aceleración y velocidad angular
+
+## Título del Issue
+
+```text id="4a5q26"
+HU-03 — Capturar aceleración y velocidad angular
+```
+
+## Labels
+
+```text id="z5wbp0"
+epic:sensors
+esp32
+firmware
+```
+
+## Descripción del Issue
+
+```md id="zvscqn"
+## Historia de Usuario
+
+Como paciente  
+Quiero que el sistema registre aceleración y velocidad angular  
+Para medir el movimiento de mi mano durante la prueba.
+
+---
+
+## Descripción
+
+El ESP32 deberá adquirir datos desde el MPU6050 durante la ejecución de la prueba.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Registrar aceleración X,Y,Z
+- [ ] Registrar velocidad angular X,Y,Z
+- [ ] Asociar timestamp a cada muestra
+- [ ] Mantener captura continua
+```
+
+---
+
+# HU-04 — Capturar orientación y campo magnético
+
+## Título del Issue
+
+```text id="cdg1w0"
+HU-04 — Capturar orientación y campo magnético
+```
+
+## Labels
+
+```text id="88k93m"
+epic:sensors
+esp32
+firmware
+```
+
+## Descripción del Issue
+
+```md id="5l8uc2"
+## Historia de Usuario
+
+Como paciente  
+Quiero que el sistema registre orientación y datos magnéticos  
+Para complementar el análisis espacial de mi movimiento.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Registrar aceleración del LSM303DLHC
+- [ ] Registrar campo magnético X,Y,Z
+- [ ] Asociar datos a la sesión activa
+- [ ] Mantener estructura válida de datos
+```
+
+---
+
+# HU-05 — Capturar presión aplicada durante la prueba
+
+## Título del Issue
+
+```text id="1n6hrv"
+HU-05 — Capturar presión aplicada durante la prueba
+```
+
+## Labels
+
+```text id="epv7x8"
+epic:sensors
+esp32
+firmware
+```
+
+## Descripción del Issue
+
+```md id="pq8v8z"
+## Historia de Usuario
+
+Como paciente  
+Quiero que el sistema registre la presión aplicada durante la prueba  
+Para complementar el análisis del comportamiento motor.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Capturar datos del FSR402
+- [ ] Registrar valores de presión
+- [ ] Asociar presión a cada muestra
+- [ ] Enviar presión junto con otros sensores
+```
+
+---
+
+# ÉPICA: Transmisión y comunicación
+
+**Label GitHub:** `epic:transmission`
+
+---
+
+# HU-06 — Empaquetar muestras en formato JSON
+
+## Título del Issue
+
+```text id="ek9x1u"
+HU-06 — Empaquetar muestras en formato JSON
+```
+
+## Labels
+
+```text id="ufh9k8"
+epic:transmission
+esp32
+backend
+```
+
+## Descripción del Issue
+
+```md id="k0m8is"
+## Historia de Usuario
+
+Como paciente  
+Quiero que las muestras sean estructuradas correctamente  
+Para permitir su transmisión y procesamiento.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Convertir muestras a JSON
+- [ ] Incluir datos de todos los sensores
+- [ ] Mantener estructura consistente
+- [ ] Asociar identificador de sesión
+```
+
+---
+
+# HU-07 — Transmitir datos mediante HTTP
+
+## Título del Issue
+
+```text id="z1t6iq"
+HU-07 — Transmitir datos mediante HTTP
+```
+
+## Labels
+
+```text id="00d0y9"
+epic:transmission
+esp32
+backend
+http
+```
+
+## Descripción del Issue
+
+```md id="rya75z"
+## Historia de Usuario
+
+Como paciente  
+Quiero que el sistema transmita mis datos al backend  
+Para almacenar las muestras capturadas.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Consumir endpoint HTTP de captura
+- [ ] Transmitir muestras correctamente
+- [ ] Detectar errores HTTP
+- [ ] Registrar estado de transmisión
+```
+
+---
+
+# HU-08 — Publicar datos mediante MQTT
+
+## Título del Issue
+
+```text id="c3g9l1"
+HU-08 — Publicar datos mediante MQTT
+```
+
+## Labels
+
+```text id="up3chc"
+epic:transmission
+mqtt
+esp32
+backend
+```
+
+## Descripción del Issue
+
+```md id="esijne"
+## Historia de Usuario
+
+Como paciente  
+Quiero que el sistema publique datos mediante MQTT  
+Para permitir transmisión en tiempo real.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Publicar en tópico sensor/data
+- [ ] Reconectar automáticamente ante fallos
+- [ ] Permitir recepción desde backend
+- [ ] Mantener transmisión continua
+```
+
+---
+
+# HU-09 — Gestionar buffer temporal de datos
+
+## Título del Issue
+
+```text id="y2j60q"
+HU-09 — Gestionar buffer temporal de datos
+```
+
+## Labels
+
+```text id="glgkkj"
+epic:transmission
+esp32
+firmware
+```
+
+## Descripción del Issue
+
+```md id="dls19j"
+## Historia de Usuario
+
+Como paciente  
+Quiero que el sistema almacene temporalmente muestras  
+Para evitar pérdida de datos durante fallos de conectividad.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Almacenar muestras en buffer
+- [ ] Reenviar muestras pendientes
+- [ ] Detectar límite de buffer
+- [ ] Registrar advertencias de memoria
+```
+
+---
+
+# ÉPICA: Backend y persistencia
+
+**Label GitHub:** `epic:backend`
+
+---
+
+# HU-10 — Validar datos recibidos
+
+## Título del Issue
+
+```text id="obmhqj"
+HU-10 — Validar datos recibidos
+```
+
+## Labels
+
+```text id="3to6qy"
+epic:backend
+backend
+database
+```
+
+## Descripción del Issue
+
+```md id="vvl1e7"
+## Historia de Usuario
+
+Como profesional de la salud  
+Quiero que el sistema valide las muestras recibidas  
+Para asegurar integridad y consistencia de la información.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Detectar JSON inválido
+- [ ] Validar campos obligatorios
+- [ ] Rechazar datos corruptos
+- [ ] Registrar errores de validación
+```
+
+---
+
+# HU-11 — Almacenar sesiones y muestras
+
+## Título del Issue
+
+```text id="9a7dm9"
+HU-11 — Almacenar sesiones y muestras
+```
+
+## Labels
+
+```text id="0ng6u9"
+epic:backend
+backend
+database
+postgresql
+```
+
+## Descripción del Issue
+
+```md id="4rn95r"
+## Historia de Usuario
+
+Como profesional de la salud  
+Quiero que las sesiones y muestras sean almacenadas  
+Para mantener historial estructurado de las pruebas.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Persistir sesiones en base de datos
+- [ ] Persistir muestras sensoriales
+- [ ] Asociar muestras a sesiones
+- [ ] Garantizar persistencia mínima del 95%
+```
+
+---
+
+# ÉPICA: Visualización y análisis
+
+**Label GitHub:** `epic:visualization`
+
+---
+
+# HU-12 — Consultar historial de pruebas
+
+## Título del Issue
+
+```text id="e8t5j6"
+HU-12 — Consultar historial de pruebas
+```
+
+## Labels
+
+```text id="d2s4jv"
+epic:visualization
+frontend
+backend
+```
+
+## Descripción del Issue
+
+```md id="ym7p3v"
+## Historia de Usuario
+
+Como profesional de la salud  
+Quiero consultar el historial de pruebas de un paciente  
+Para realizar seguimiento de su evolución.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Mostrar sesiones registradas
+- [ ] Visualizar fecha e identificador
+- [ ] Permitir navegación entre pruebas
+- [ ] Mantener tiempos de carga adecuados
+```
+
+---
+
+# HU-13 — Visualizar gráficas de sensores
+
+## Título del Issue
+
+```text id="0s04j7"
+HU-13 — Visualizar gráficas de sensores
+```
+
+## Labels
+
+```text id="z1t2es"
+epic:visualization
+frontend
+charts
+```
+
+## Descripción del Issue
+
+```md id="gf4sbi"
+## Historia de Usuario
+
+Como profesional de la salud  
+Quiero visualizar gráficas de sensores  
+Para interpretar el comportamiento motor registrado durante la prueba.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Mostrar gráficas temporales
+- [ ] Diferenciar variables de sensores
+- [ ] Actualizar gráficas dinámicamente
+- [ ] Permitir visualización por sesión
+```
+
+---
+
+# HU-14 — Consultar detalle completo de una prueba
+
+## Título del Issue
+
+```text id="utavpo"
+HU-14 — Consultar detalle completo de una prueba
+```
+
+## Labels
+
+```text id="8jlwmz"
+epic:visualization
+frontend
+backend
+```
+
+## Descripción del Issue
+
+```md id="sn5d0o"
+## Historia de Usuario
+
+Como profesional de la salud  
+Quiero visualizar el detalle completo de una prueba  
+Para analizar los datos capturados durante la sesión.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Mostrar aceleración
+- [ ] Mostrar velocidad angular
+- [ ] Mostrar orientación y presión
+- [ ] Cargar visualización en menos de 2 segundos
+```
+
+---
+
+# ÉPICA: Calidad y validación
+
+**Label GitHub:** `epic:testing`
+
+---
+
+# HU-15 — Ejecutar pruebas integrales del sistema
+
+## Título del Issue
+
+```text id="wtp8ls"
+HU-15 — Ejecutar pruebas integrales del sistema
+```
+
+## Labels
+
+```text id="wztx4q"
+epic:testing
+testing
+integration
+```
+
+## Descripción del Issue
+
+```md id="0xx26u"
+## Historia de Usuario
+
+Como profesional de la salud  
+Quiero que el sistema funcione correctamente de extremo a extremo  
+Para garantizar confiabilidad en la captura y visualización de datos.
+
+---
+
+## Criterios de aceptación
+
+- [ ] Validar captura desde sensores
+- [ ] Validar transmisión al backend
+- [ ] Validar almacenamiento en PostgreSQL
+- [ ] Validar visualización en frontend
+- [ ] Registrar incidencias detectadas
+```

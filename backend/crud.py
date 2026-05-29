@@ -1,6 +1,25 @@
 from sqlalchemy.orm import Session
-from models import CaptureSession, SensorSample
+from models import CaptureSession, SensorSample, Patient
 import schemas
+
+def get_patients(db: Session):
+    return db.query(Patient).all()
+
+def get_patient(db: Session, patient_id: str):
+    return db.query(Patient).filter(Patient.id == patient_id).first()
+
+def create_patient(db: Session, patient: schemas.PatientCreate):
+    db_patient = Patient(
+        id=patient.id,
+        name=patient.name,
+        age=patient.age,
+        gender=patient.gender,
+        notes=patient.notes
+    )
+    db.add(db_patient)
+    db.commit()
+    db.refresh(db_patient)
+    return db_patient
 
 def save_capture(db: Session, data: schemas.Capture):
     # 1. Buscar si la sesión ya existe
@@ -8,11 +27,13 @@ def save_capture(db: Session, data: schemas.Capture):
         CaptureSession.id == data.session_id
     ).first()
 
-    # 2. Si no existe la sesión (por ejemplo, si no corriste el seed), se crea automáticamente
+    # 2. Si no existe la sesión, se crea automáticamente
     if not session:
         session = CaptureSession(
             id=data.session_id,
             device_id=data.device_id,
+            patient_id=data.patient_id,
+            patient_name=data.patient_name,
             sample_rate_hz=data.sample_rate_hz
         )
         db.add(session)

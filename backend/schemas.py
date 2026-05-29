@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 
 class Sample(BaseModel):
@@ -28,5 +28,25 @@ class Sample(BaseModel):
 class Capture(BaseModel):
     session_id: str
     device_id: str
+    patient_id: Optional[str] = None
+    patient_name: str = "Anónimo"
     sample_rate_hz: int
     samples: List[Sample]
+
+
+class PatientBase(BaseModel):
+    name: str
+    age: int
+    gender: str
+    notes: Optional[str] = None
+
+
+class PatientCreate(PatientBase):
+    id: str
+
+
+class Patient(PatientBase):
+    id: str
+
+    class Config:
+        from_attributes = True

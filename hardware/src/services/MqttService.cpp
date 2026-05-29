@@ -63,9 +63,9 @@ void MqttService::loop() {
 
                 Serial.println("[MQTT] Reconectado");
 
-                client.subscribe("sensor/control");
+                client.subscribe("icesi/jose/esp32/control");
 
-                Serial.println("[MQTT] Resuscrito a sensor/control");
+                Serial.println("[MQTT] Resuscrito a icesi/jose/esp32/control");
 
             } else {
 
@@ -120,20 +120,23 @@ void MqttService::callback(
 
     if (comando == "START") {
 
-        Serial.println("[MQTT] Solicitud START recibida");
-            if (globalTestManager != nullptr) {
+        String patientName = "Anónimo";
+        if (json.hasOwnProperty("paciente")) {
+            patientName = (const char*) json["paciente"];
+        }
 
-                globalTestManager->startTest();
-            }
+        Serial.println("[MQTT] Solicitud START recibida para: " + patientName);
+        if (globalTestManager != nullptr) {
+            globalTestManager->startTest(patientName);
+        }
 
     } else if (comando == "STOP") {
 
         Serial.println("[MQTT] Solicitud STOP recibida");
         
         if (globalTestManager != nullptr) {
-                globalTestManager->stopTest();
-            }
-
+            globalTestManager->stopTest();
+        }
 
     } else {
 
@@ -147,13 +150,15 @@ void MqttService::callback(
 bool MqttService::publishBatch(
     Sample* samples,
     int count,
-    String sessionId
+    String sessionId,
+    String patientName
 ) {
 
     JSONVar payload;
 
     payload["session_id"] = sessionId;
     payload["device_id"] = "esp32-devkit";
+    payload["patient_name"] = patientName;
     payload["sample_rate_hz"] = SAMPLE_RATE_HZ;
 
     JSONVar samplesArray;
@@ -205,4 +210,16 @@ bool MqttService::publishBatch(
     }
 
     return success;
+}
+
+void MqttService::publishStatus(String status, String sessionId, String patientName) {
+    JSONVar payload;
+    payload["status"] = status;
+    if (sessionId != "") payload["session_id"] = sessionId;
+    if (patientName != "") payload["patient_name"] = patientName;
+    payload["ts"] = (double)millis();
+
+    String jsonString = JSON.stringify(payload);
+    client.publish("icesi/jose/esp32/status", jsonString.c_str());
+    Serial.println("[MQTT] Status publicado: " + status);
 }

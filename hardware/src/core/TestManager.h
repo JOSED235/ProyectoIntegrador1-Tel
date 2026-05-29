@@ -20,6 +20,7 @@ private:
     bool testRunning;
 
     String currentSessionId;
+    String currentPatientName;
 
     uint32_t sequenceCounter;
 
@@ -40,7 +41,7 @@ private:
     String generateSessionId();
 
 public:
-    void startTest();
+    void startTest(String patientName = "Anónimo");
     void stopTest();
     bool isRunning();
     TestManager();

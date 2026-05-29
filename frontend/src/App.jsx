@@ -1,464 +1,171 @@
-import { Radio, Send, Wifi, WifiOff } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
-
-import RawDataView from './components/RawDataView'
-import SessionList from './components/SessionList'
-
+import { useEffect, useState } from 'react'
+import LoginModern from './components/LoginModern'
+import MainHub from './components/MainHub'
+import PatientManagement from './components/PatientManagement'
+import PatientDetail from './components/PatientDetail'
+import AnalysisModern from './components/AnalysisModern'
+import CaptureModern from './components/CaptureModern'
+import DashboardModern from './components/DashboardModern'
 import client from './services/mqttService'
 
 function App() {
-  // STATE
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [currentScreen, setCurrentScreen] = useState('hub') 
   const [selectedSession, setSelectedSession] = useState(null)
+  const [selectedPatient, setSelectedPatient] = useState(null)
+  const [patientNameForDetail, setPatientNameForDetail] = useState("")
 
   const [mqttStatus, setMqttStatus] = useState('Desconectado')
-
-  const [mqttLog, setMqttLog] = useState([])
-
-  const [topic, setTopic] = useState('icesi/jose/esp32/control')
-
-  const [mensaje, setMensaje] = useState('')
-
-  const [liveData, setLiveData] = useState(null)
-
-  const logRef = useRef(null)
-
-
-  // HELPERS
-
-  const agregarLog = (tipo, texto) => {
-
-    const hora = new Date().toLocaleTimeString()
-
-    setMqttLog((prev) => [
-      ...prev.slice(-49),
-      {
-        tipo,
-        texto,
-        hora
-      }
-    ])
-  }
-
-
-  // MQTT SETUP
+  const [isRecording, setIsRecording] = useState(false)
 
   useEffect(() => {
-
-    const onConnect = () => {
-
-      console.log('[MQTT] Conectado')
-
-      setMqttStatus('Conectado')
-
-      client.subscribe('icesi/jose/esp32/data')
-
-      client.subscribe('icesi/jose/esp32/control')
-
-      agregarLog(
-        'sistema',
-        'Conectado al broker MQTT'
-      )
-    }
-
-    const onError = (err) => {
-
-      console.error('[MQTT] Error', err)
-
-      setMqttStatus('Error')
-
-      agregarLog(
-        'error',
-        'Error de conexión MQTT'
-      )
-    }
-
-    const onReconnect = () => {
-
-      console.log('[MQTT] Reconectando...')
-
-      agregarLog(
-        'sistema',
-        'Reconectando MQTT...'
-      )
-    }
-
-    const onOffline = () => {
-
-      console.log('[MQTT] Offline')
-
-      setMqttStatus('Desconectado')
-
-      agregarLog(
-        'error',
-        'MQTT desconectado'
-      )
-    }
-
-    const onMessage = (topic, payload) => {
-
-      const message = payload.toString()
-
-      console.log('[MQTT]', topic, message)
-
-      // LOG VISUAL
-      agregarLog(
-        'entrada',
-        `[${topic}] ${message}`
-      )
-
-      // DATOS LIVE DEL ESP32
-      if (topic === 'icesi/jose/esp32/data') {
-
-        try {
-
-          const parsed = JSON.parse(message)
-
-          setLiveData(parsed)
-
-        } catch (err) {
-
-          console.error(
-            'Error parseando JSON MQTT',
-            err
-          )
+    try {
+        const onConnect = () => {
+            setMqttStatus('Conectado');
+            client.subscribe('icesi/jose/esp32/status');
         }
-      }
+        const onError = () => setMqttStatus('Error')
+        const onOffline = () => setMqttStatus('Desconectado')
+
+        const onMessage = (topic, payload) => {
+          if (topic === 'icesi/jose/esp32/status') {
+            try {
+              const data = JSON.parse(payload.toString());
+              if (data.status === "RECORDING") {
+                  setIsRecording(true);
+              } else if (data.status === "IDLE") {
+                  setIsRecording(false);
+              }
+            } catch (err) {
+              console.error('Error sync state', err);
+            }
+          }
+        }
+
+        client.on('connect', onConnect)
+        client.on('error', onError)
+        client.on('offline', onOffline)
+        client.on('message', onMessage)
+
+        if (client.connected) {
+            setMqttStatus('Conectado');
+            client.subscribe('icesi/jose/esp32/status');
+        }
+
+        return () => {
+          client.off('connect', onConnect)
+          client.off('error', onError)
+          client.off('offline', onOffline)
+          client.off('message', onMessage)
+        }
+    } catch (e) {
+        console.error("MQTT setup error", e);
     }
-
-    // EVENTOS MQTT
-    client.on('connect', onConnect)
-
-    client.on('error', onError)
-
-    client.on('reconnect', onReconnect)
-
-    client.on('offline', onOffline)
-
-    client.on('message', onMessage)
-
-    // SI YA ESTABA CONECTADO
-    if (client.connected) {
-
-      setMqttStatus('Conectado')
-    }
-
-    // CLEANUP
-    return () => {
-
-      client.off('connect', onConnect)
-
-      client.off('error', onError)
-
-      client.off('reconnect', onReconnect)
-
-      client.off('offline', onOffline)
-
-      client.off('message', onMessage)
-    }
-
   }, [])
 
+  // RENDER SEGURO
+  try {
+      if (!isAuthenticated) {
+        return <LoginModern onLogin={() => setIsAuthenticated(true)} />;
+      }
 
-  // AUTO SCROLL LOG
+      if (currentScreen === 'analysis' && selectedSession) {
+        return (
+          <AnalysisModern 
+            sessionId={selectedSession} 
+            patientName={patientNameForDetail}
+            onBack={() => {
+              setSelectedSession(null);
+              if (selectedPatient) setCurrentScreen('patient-detail');
+              else setCurrentScreen('history');
+            }} 
+          />
+        );
+      }
 
-  useEffect(() => {
+      if (currentScreen === 'capture') {
+        return (
+          <CaptureModern 
+            mqttStatus={mqttStatus}
+            isRecordingFromHardware={isRecording}
+            patientInitialId={selectedPatient?.name || ""}
+            onBack={() => {
+                if (selectedPatient) setCurrentScreen('patient-detail');
+                else setCurrentScreen('hub');
+            }} 
+          />
+        );
+      }
 
-    if (logRef.current) {
-
-      logRef.current.scrollTop =
-        logRef.current.scrollHeight
-    }
-
-  }, [mqttLog])
-
-
-  // MQTT PUBLISH MANUAL
-
-  const publicar = () => {
-
-    if (
-      !mensaje.trim() ||
-      mqttStatus !== 'Conectado'
-    ) return
-
-    client.publish(
-      topic,
-      mensaje
-    )
-
-    agregarLog(
-      'salida',
-      `[${topic}] ${mensaje}`
-    )
-
-    setMensaje('')
-  }
-
-
-  // MQTT START / STOP
-
-  const publicarComando = (cmd) => {
-
-    const payload = JSON.stringify({
-      comando: cmd,
-      ts: Date.now()
-    })
-
-    client.publish(
-      'icesi/jose/esp32/control',
-      payload
-    )
-
-    agregarLog(
-      'salida',
-      `[icesi/jose/esp32/control] ${payload}`
-    )
-  }
-
-
-  // RENDER
-
-  return (
-
-    <div className="app">
-
-      {/* HEADER */}
-
-      <header className="app__header">
-
-        <div className="header__titulo">
-
-          <Radio size={20} />
-
-          <span>
-            Sistema de Captura de Temblor
-          </span>
-
-        </div>
-
-        <div
-          className={`
-            header__mqtt-badge
-            ${mqttStatus === 'Conectado'
-              ? 'badge--on'
-              : 'badge--off'
-            }
-          `}
-        >
-
-          {mqttStatus === 'Conectado'
-            ? (
-              <>
-                <Wifi size={14} />
-                Conectado
-              </>
-            )
-            : (
-              <>
-                <WifiOff size={14} />
-                {mqttStatus}
-              </>
-            )
-          }
-
-        </div>
-
-      </header>
-
-
-      {/* MAIN */}
-
-      <main className="app__main">
-
-        {/* LEFT */}
-
-        <aside className="col-left">
-
-          {/* SESIONES */}
-
-          <section className="panel">
-
-            <h2 className="panel__titulo">
-              Sesiones registradas
-            </h2>
-
-            <SessionList
-              onSelect={setSelectedSession}
-              selectedId={selectedSession}
-            />
-
-          </section>
-
-
-          {/* MQTT CONTROL */}
-
-          <section className="panel">
-
-            <h2 className="panel__titulo">
-              Control MQTT
-            </h2>
-
-
-            {/* START / STOP */}
-
-            <div className="mqtt-cmds">
-
-              <button
-                className="cmd-btn cmd-btn--start"
-                onClick={() => publicarComando('START')}
-                disabled={mqttStatus !== 'Conectado'}
-              >
-                ▶ START
-              </button>
-
-              <button
-                className="cmd-btn cmd-btn--stop"
-                onClick={() => publicarComando('STOP')}
-                disabled={mqttStatus !== 'Conectado'}
-              >
-                ■ STOP
-              </button>
-
-            </div>
-
-
-            {/* PUBLICADOR MANUAL */}
-
-            <div className="mqtt-manual">
-
-              <input
-                className="mqtt-input"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="topic"
+      if (currentScreen === 'patients') {
+          return (
+              <PatientManagement 
+                onBack={() => setCurrentScreen('hub')}
+                onSelectPatient={(p) => {
+                    setSelectedPatient(p);
+                    setCurrentScreen('patient-detail');
+                }}
               />
+          );
+      }
 
-              <input
-                className="mqtt-input"
-                value={mensaje}
-                onChange={(e) => setMensaje(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === 'Enter' && publicar()
-                }
-                placeholder="mensaje"
+      if (currentScreen === 'patient-detail' && selectedPatient) {
+          return (
+              <PatientDetail 
+                patientId={selectedPatient.id}
+                onBack={() => {
+                    setSelectedPatient(null);
+                    setCurrentScreen('patients');
+                }}
+                onViewSession={(sessionId, name) => {
+                    setSelectedSession(sessionId);
+                    setPatientNameForDetail(name);
+                    setCurrentScreen('analysis');
+                }}
+                onNewCapture={(id, name) => {
+                    setCurrentScreen('capture');
+                }}
               />
+          );
+      }
 
-              <button
-                className="mqtt-send"
-                onClick={publicar}
-                disabled={mqttStatus !== 'Conectado'}
+      if (currentScreen === 'history') {
+          return (
+              <DashboardModern 
+                onBack={() => setCurrentScreen('hub')}
+                onViewDetails={(id, name) => {
+                    setSelectedSession(id);
+                    setPatientNameForDetail(name);
+                    setCurrentScreen('analysis');
+                }}
+                onNewCapture={() => setCurrentScreen('capture')}
+              />
+          );
+      }
+
+      return (
+        <MainHub 
+          onNavigate={(target) => setCurrentScreen(target)}
+        />
+      );
+  } catch (err) {
+      return (
+          <div style={{ padding: '40px', textAlign: 'center', fontFamily: 'sans-serif' }}>
+              <h1 style={{ color: '#EF4444' }}>Error Crítico en la Interfaz</h1>
+              <p>Ocurrió un error al renderizar la aplicación.</p>
+              <pre style={{ background: '#F3F4F6', padding: '20px', borderRadius: '10px', display: 'inline-block' }}>
+                  {err.message}
+              </pre>
+              <br />
+              <button 
+                onClick={() => window.location.reload()}
+                style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer' }}
               >
-
-                <Send size={14} />
-
-                Publicar
-
+                Recargar Página
               </button>
-
-            </div>
-
-
-            {/* LOG MQTT */}
-
-            <div
-              className="mqtt-log"
-              ref={logRef}
-            >
-
-              {mqttLog.length === 0
-                ? (
-                  <span className="texto-dim">
-                    // Sin actividad aún
-                  </span>
-                )
-                : (
-                  mqttLog.map((entry, i) => (
-
-                    <div
-                      key={i}
-                      className={`
-                        log-line
-                        log-line--${entry.tipo}
-                      `}
-                    >
-
-                      <span className="log-hora">
-                        {entry.hora}
-                      </span>
-
-                      <span className="log-texto">
-                        {entry.texto}
-                      </span>
-
-                    </div>
-                  ))
-                )
-              }
-
-            </div>
-
-          </section>
-
-        </aside>
-
-
-        {/* RIGHT */}
-
-        <section className="col-right">
-
-          {/* HTTP */}
-
-          <section className="panel">
-
-            <h2 className="panel__titulo">
-
-              Respuesta HTTP — JSON crudo
-
-              {selectedSession && (
-
-                <span className="panel__titulo-sub">
-                  {selectedSession}
-                </span>
-              )}
-
-            </h2>
-
-            <RawDataView
-              sessionId={selectedSession}
-            />
-
-          </section>
-
-
-          {/* MQTT LIVE */}
-
-          <section className="panel">
-
-            <h2 className="panel__titulo">
-              MQTT LIVE DATA
-            </h2>
-
-            <pre className="json-view">
-
-              {liveData
-                ? JSON.stringify(
-                    liveData,
-                    null,
-                    2
-                  )
-                : 'Esperando datos MQTT...'
-              }
-
-            </pre>
-
-          </section>
-
-        </section>
-
-      </main>
-
-    </div>
-  )
+          </div>
+      )
+  }
 }
 
 export default App

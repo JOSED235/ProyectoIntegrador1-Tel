@@ -7,6 +7,7 @@ TestManager::TestManager() {
     testRunning = false;
 
     currentSessionId = "";
+    currentPatientName = "Anónimo";
 
     sequenceCounter = 1;
 
@@ -40,33 +41,28 @@ void TestManager::update() {
 
     if (!testRunning) return;
 
-    // Primero enviar si está lleno, ANTES de seguir muestreando
     if (bufferManager.isFull()) {
         Sample tempBuffer[BUFFER_SIZE];
         int count = bufferManager.size();
         memcpy(tempBuffer, bufferManager.getBuffer(), sizeof(Sample) * count);
-        bufferManager.clear();  // limpia para que el while pueda seguir
+        bufferManager.clear();
 
-        bool success = httpService.sendBatch(tempBuffer, count, currentSessionId);
+        bool success = httpService.sendBatch(tempBuffer, count, currentSessionId, currentPatientName);
         if (!success) {
             Serial.println("Error enviando batch.");
-            // Opcional: reintentar una vez
-            delay(200);
-            httpService.sendBatch(tempBuffer, count, currentSessionId);
+            delay(100);
+            httpService.sendBatch(tempBuffer, count, currentSessionId, currentPatientName);
         }
 
-        bool mqttSuccess = mqttService.publishBatch(tempBuffer, count, currentSessionId);
+        bool mqttSuccess = mqttService.publishBatch(tempBuffer, count, currentSessionId, currentPatientName);
         if (!mqttSuccess) {
-
             Serial.println("Error MQTT publish.");
         }
 
-        // Resetear el timing para no acumular muestras perdidas durante el envío
         nextSampleUs = micros();
-        return; // salir y dejar que loop() vuelva a llamar update()
+        return; 
     }
 
-    // Solo muestrear si el buffer tiene espacio
     uint32_t nowUs = micros();
     while ((int32_t)(nowUs - nextSampleUs) >= 0) {
         acquireSample();
@@ -91,7 +87,7 @@ void TestManager::handleButton() {
         lastDebounceMs = millis();
 
         if (!testRunning) {
-            startTest();
+            startTest("Boton Físico");
         }
         else {
             stopTest();
@@ -101,85 +97,50 @@ void TestManager::handleButton() {
     lastButtonState = currentButtonState;
 }
 
-
-
-bool WiFiManager::isConnected() {
-
-    return WiFi.status() == WL_CONNECTED;
-}
-
-
-void WiFiManager::reconnectIfNeeded() {
-
-    static unsigned long lastAttempt = 0;
-
-    if (
-        WiFi.status() != WL_CONNECTED &&
-        millis() - lastAttempt > 10000
-    ) {
-
-        lastAttempt = millis();
-
-        Serial.println(
-            "Reintentando WiFi..."
-        );
-
-        connect();
-    }
-}
-
-void TestManager::startTest() {
+void TestManager::startTest(String patientName) {
 
     if (testRunning) {
-
         Serial.println("La prueba ya está corriendo.");
         return;
     }
 
     currentSessionId = generateSessionId();
+    currentPatientName = patientName;
 
     sessionStartUs = micros();
-
     nextSampleUs = micros();
-
     sequenceCounter = 1;
 
     bufferManager.clear();
-
     testRunning = true;
 
-    Serial.println("PRUEBA INICIADA");
+    Serial.println("PRUEBA INICIADA para: " + currentPatientName);
     Serial.println("Session ID: " + currentSessionId);
+    
+    // NOTIFICAR POR MQTT
+    mqttService.publishStatus("RECORDING", currentSessionId, currentPatientName);
 }
-
-bool TestManager::isRunning() {
-
-    return testRunning;
-}
-
-
-
 
 void TestManager::stopTest() {
 
     if (!testRunning) {
-
         Serial.println("No hay prueba activa.");
         return;
     }
 
     if (!bufferManager.isEmpty()) {
-
         httpService.sendBatch(
             bufferManager.getBuffer(),
             bufferManager.size(),
-            currentSessionId
+            currentSessionId,
+            currentPatientName
         );
 
         mqttService.publishBatch(
             bufferManager.getBuffer(),
             bufferManager.size(),
-            currentSessionId
+            currentSessionId,
+            currentPatientName
         );
 
         bufferManager.clear();
@@ -188,32 +149,13 @@ void TestManager::stopTest() {
     testRunning = false;
 
     Serial.println("PRUEBA FINALIZADA");
-    Serial.println("Session ID: " + currentSessionId);
-
-    if (!bufferManager.isEmpty()) {
-
-        httpService.sendBatch(
-            bufferManager.getBuffer(),
-            bufferManager.size(),
-            currentSessionId
-        );
-
-        mqttService.publishBatch(
-            
-            bufferManager.getBuffer(),
-            bufferManager.size(),
-            currentSessionId
-        );
-
-        bufferManager.clear();
-    }
-
-    testRunning = false;
-
     
-    Serial.println("PRUEBA FINALIZADA");
-    Serial.println("Session ID: " + currentSessionId);
+    // NOTIFICAR POR MQTT
+    mqttService.publishStatus("IDLE");
+}
 
+bool TestManager::isRunning() {
+    return testRunning;
 }
 
 void TestManager::acquireSample() {
@@ -236,14 +178,10 @@ void TestManager::acquireSample() {
         bufferManager.addSample(sample);
 
     if (!added) {
-
-        Serial.println(
-            "ERROR: buffer lleno."
-        );
+        Serial.println("ERROR: buffer lleno.");
     }
 }
 
 String TestManager::generateSessionId() {
-
     return "ses_" + String(millis());
 }
