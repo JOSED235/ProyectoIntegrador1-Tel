@@ -28,9 +28,9 @@ inline constexpr const char* SERVER_URL =
 
 
 
-inline constexpr const char* WIFI_SSID = "MAROARR";
+inline constexpr const char* WIFI_SSID = "A54 de Jose David";
 
-inline constexpr const char* WIFI_PASSWORD =  "Girare193819410";
+inline constexpr const char* WIFI_PASSWORD =  "123456789";
 // BACKEND
 
 //192.168.130.33 es la ip del servidor en el laboratorio
@@ -38,8 +38,8 @@ inline constexpr const char* WIFI_PASSWORD =  "Girare193819410";
 
 //ip del server en mi casa es 192.168.1.6
 
-
-inline constexpr const char* SERVER_URL =  "http://172.18.192.1:8001/captura";
+//192.168.131.143
+inline constexpr const char* SERVER_URL =  "http://10.121.6.29:8001/captura";
 
 // PINES
 
