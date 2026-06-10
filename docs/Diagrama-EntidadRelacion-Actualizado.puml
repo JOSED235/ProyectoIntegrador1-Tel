@@ -1,0 +1,116 @@
+@startuml
+title Modelo Entidad-Relación (Actualizado) - Sistema IoT de Medición de Temblor en Manos
+
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam linetype ortho
+
+skinparam entity {
+    BackgroundColor White
+    BorderColor #3B7A57
+    FontColor #2F3E46
+}
+skinparam arrow {
+    Color #3B7A57
+}
+
+' =========================
+'  ENTIDADES (modelo realmente implementado en backend/models.py)
+' =========================
+
+entity "Usuario" as usuario {
+  * cedula : string <<PK>>
+  --
+  name : string
+  email : string <<UK>>
+  password_hash : string
+  role : string
+  is_registered : boolean
+  created_by : string <<FK>>
+}
+
+entity "Paciente" as paciente {
+  * id : string <<PK>>
+  --
+  name : string
+  age : int
+  gender : string
+  notes : string
+}
+
+entity "SesionCaptura" as sesion_captura {
+  * id : string <<PK>>
+  --
+  device_id : string
+  patient_id : string <<FK>>
+  patient_name : string
+  sample_rate_hz : int
+  created_at : datetime
+}
+
+entity "MuestraSensor" as muestra_sensor {
+  * id : int <<PK>>
+  session_id : string <<FK>>
+
+  seq : int
+  ts_us : bigint
+
+  mpu_ax : float
+  mpu_ay : float
+  mpu_az : float
+
+  mpu_gx : float
+  mpu_gy : float
+  mpu_gz : float
+
+  lsm_ax : float
+  lsm_ay : float
+  lsm_az : float
+
+  lsm_mx : float
+  lsm_my : float
+  lsm_mz : float
+
+  pressure : float
+}
+
+' =========================
+'  RELACIONES
+' =========================
+
+paciente        ||-right-o{ sesion_captura : "1 paciente : N sesiones"
+sesion_captura  ||-right-o{ muestra_sensor : "1 sesión : N muestras"
+usuario         ||--o{ usuario             : "crea\n(created_by)"
+
+' Relación lógica (no es una FK real en la base de datos)
+usuario }o-up-o{ paciente : "cedula = id\n(sin FK declarada)"
+
+' =========================
+'  NOTAS
+' =========================
+
+note bottom of paciente
+  Paciente.id y Usuario.cedula comparten el
+  mismo valor (la cédula de la persona) por
+  convención de la aplicación, pero **no** existe
+  una FK declarada entre ambas tablas: la
+  resolución se hace por lógica de negocio
+  (crud.py / mqtt_subscriber.py) al crear
+  una SesionCaptura.
+end note
+
+note right of sesion_captura
+  patient_id es nullable: el ESP32 puede
+  enviar patient_name = "Anónimo" si aún
+  no existe el registro del paciente.
+end note
+
+note bottom of usuario
+  Tabla "users": autenticación JWT + roles
+  (admin / doctor / patient). Reemplaza a las
+  entidades genéricas "Device" / "TransmissionLog"
+  / "Metrics" / "Batch" del diseño original,
+  que no se implementaron.
+end note
+
+@enduml

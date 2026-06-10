@@ -2,10 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { ArrowLeft, Database, Calendar, Clock, Activity, TrendingUp, TrendingDown, RefreshCw, User } from "lucide-react";
+import { ArrowLeft, Database, Calendar, Clock, Activity, TrendingUp, TrendingDown, RefreshCw, User, AlertCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format } from "date-fns";
-import { getCaptura } from "../services/api";
+import { getCaptura, getErrorMessage } from "../services/api";
 
 export default function AnalysisModern({ sessionId, patientName, onBack }) {
   const [data, setData] = useState(null);
@@ -20,7 +20,8 @@ export default function AnalysisModern({ sessionId, patientName, onBack }) {
       setData(result);
     } catch (err) {
       console.error("Error fetching session details:", err);
-      setError("No se pudieron cargar los datos de la sesión.");
+      setData(null);
+      setError(getErrorMessage(err, "No se pudieron cargar los datos de la sesión."));
     } finally {
       setIsLoading(false);
     }
@@ -42,6 +43,12 @@ export default function AnalysisModern({ sessionId, patientName, onBack }) {
       gyroX: s.mpu_gx,
       gyroY: s.mpu_gy,
       gyroZ: s.mpu_gz,
+      lsmAccelX: s.lsm_ax,
+      lsmAccelY: s.lsm_ay,
+      lsmAccelZ: s.lsm_az,
+      magX: s.lsm_mx,
+      magY: s.lsm_my,
+      magZ: s.lsm_mz,
     }));
   }, [data]);
 
@@ -89,6 +96,48 @@ export default function AnalysisModern({ sessionId, patientName, onBack }) {
           <h2 className="text-2xl font-black text-[#2F3E46]">Procesando Telemetría</h2>
           <p className="text-[#2F3E46]/60">Sincronizando datos de sensores inerciales...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (!isLoading && !error && data && data.count === 0) {
+    return (
+      <div className="min-h-screen bg-[#F4F7F5] flex items-center justify-center p-8">
+        <Card className="max-w-md w-full p-8 text-center space-y-4 border-2 border-amber-100">
+          <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto text-amber-500">
+            <AlertCircle size={32} />
+          </div>
+          <h2 className="text-2xl font-black text-[#2F3E46]">Sesión sin datos</h2>
+          <p className="text-gray-400 font-medium">
+            Esta sesión no contiene muestras grabadas. La prueba puede haber sido
+            interrumpida antes de que el ESP32 enviara datos al servidor.
+          </p>
+          <Button variant="outline" onClick={onBack} className="font-bold gap-2 w-full">
+            <ArrowLeft size={18} /> Volver al Historial
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#F4F7F5] flex items-center justify-center p-8">
+        <Card className="max-w-md w-full p-8 text-center space-y-4 border-2 border-red-100">
+          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto text-red-500">
+            <AlertCircle size={32} />
+          </div>
+          <h2 className="text-2xl font-black text-[#2F3E46]">No se pudo cargar la sesión</h2>
+          <p className="text-gray-400 font-medium">{error}</p>
+          <div className="flex gap-3 justify-center pt-2">
+            <Button variant="outline" onClick={onBack} className="font-bold gap-2">
+              <ArrowLeft size={18} /> Volver al Historial
+            </Button>
+            <Button onClick={fetchDetails} className="bg-[#3B7A57] hover:bg-[#2d5f43] font-bold">
+              Reintentar
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -181,6 +230,60 @@ export default function AnalysisModern({ sessionId, patientName, onBack }) {
                 <YAxis />
                 <Tooltip content={<CustomTooltip />} />
                 <Line type="monotone" dataKey="pressure" stroke="#3B7A57" name="Presión (N)" dot={false} strokeWidth={4} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+
+          <Card className="p-6 bg-white shadow-xl rounded-3xl overflow-hidden">
+            <h3 className="text-xl font-black text-[#2F3E46] mb-6 flex items-center gap-2">
+                <div className="w-2 h-6 bg-amber-500 rounded-full" /> Velocidad Angular (Giroscopio MPU6050)
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="time" label={{ value: 'Tiempo (s)', position: 'insideBottom', offset: -5 }} />
+                <YAxis />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Line type="monotone" dataKey="gyroX" stroke="#2563eb" name="Eje X" dot={false} strokeWidth={2} isAnimationActive={false} />
+                <Line type="monotone" dataKey="gyroY" stroke="#ea580c" name="Eje Y" dot={false} strokeWidth={2} isAnimationActive={false} />
+                <Line type="monotone" dataKey="gyroZ" stroke="#9333ea" name="Eje Z" dot={false} strokeWidth={2} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+
+          <Card className="p-6 bg-white shadow-xl rounded-3xl overflow-hidden">
+            <h3 className="text-xl font-black text-[#2F3E46] mb-6 flex items-center gap-2">
+                <div className="w-2 h-6 bg-rose-500 rounded-full" /> Aceleración Lineal (LSM303DLHC)
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="time" label={{ value: 'Tiempo (s)', position: 'insideBottom', offset: -5 }} />
+                <YAxis />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Line type="monotone" dataKey="lsmAccelX" stroke="#2563eb" name="Eje X" dot={false} strokeWidth={2} isAnimationActive={false} />
+                <Line type="monotone" dataKey="lsmAccelY" stroke="#ea580c" name="Eje Y" dot={false} strokeWidth={2} isAnimationActive={false} />
+                <Line type="monotone" dataKey="lsmAccelZ" stroke="#9333ea" name="Eje Z" dot={false} strokeWidth={2} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+
+          <Card className="p-6 bg-white shadow-xl rounded-3xl overflow-hidden">
+            <h3 className="text-xl font-black text-[#2F3E46] mb-6 flex items-center gap-2">
+                <div className="w-2 h-6 bg-cyan-500 rounded-full" /> Campo Magnético / Orientación (LSM303DLHC)
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="time" label={{ value: 'Tiempo (s)', position: 'insideBottom', offset: -5 }} />
+                <YAxis />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Line type="monotone" dataKey="magX" stroke="#0891b2" name="Eje X" dot={false} strokeWidth={2} isAnimationActive={false} />
+                <Line type="monotone" dataKey="magY" stroke="#be123c" name="Eje Y" dot={false} strokeWidth={2} isAnimationActive={false} />
+                <Line type="monotone" dataKey="magZ" stroke="#65a30d" name="Eje Z" dot={false} strokeWidth={2} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </Card>

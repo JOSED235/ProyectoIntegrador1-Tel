@@ -1,12 +1,13 @@
 import json
+import os
 import paho.mqtt.client as mqtt
 
 from database import SessionLocal
-from models import SensorSample, CaptureSession
+from models import SensorSample, CaptureSession, Patient
 
-BROKER = "mosquitto"
-PORT = 1883
-TOPIC = "sensor/data"
+BROKER = os.getenv("MQTT_BROKER", "broker.emqx.io")
+PORT   = int(os.getenv("MQTT_PORT", "1883"))
+TOPIC  = os.getenv("MQTT_TOPIC", "icesi/jose/esp32/data")
 
 
 def on_connect(client, userdata, flags, rc):
@@ -30,9 +31,23 @@ def on_message(client, userdata, msg):
         ).first()
 
         if not sesion:
+            patient_id = payload.get("patient_id")
+            patient_name = payload.get("patient_name", "Anónimo")
+
+            # El firmware reenvía el texto recibido como "paciente" (la cédula que
+            # el frontend envía al iniciar la captura), así que lo resolvemos aquí
+            # contra la tabla de pacientes registrados para asociar la sesión.
+            if not patient_id:
+                paciente = db.query(Patient).filter(Patient.id == patient_name).first()
+                if paciente:
+                    patient_id = paciente.id
+                    patient_name = paciente.name
+
             sesion = CaptureSession(
                 id=session_id,
                 device_id=payload.get("device_id", "esp32"),
+                patient_id=patient_id,
+                patient_name=patient_name,
                 sample_rate_hz=payload.get("sample_rate_hz", 100)
             )
 
@@ -82,6 +97,6 @@ client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
 
-client.connect(BROKER, PORT, 60)
+client.connect_async(BROKER, PORT, 60)
 
 client.loop_start()

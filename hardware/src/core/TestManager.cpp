@@ -47,12 +47,8 @@ void TestManager::update() {
         memcpy(tempBuffer, bufferManager.getBuffer(), sizeof(Sample) * count);
         bufferManager.clear();
 
-        bool success = httpService.sendBatch(tempBuffer, count, currentSessionId, currentPatientName);
-        if (!success) {
-            Serial.println("Error enviando batch.");
-            delay(100);
-            httpService.sendBatch(tempBuffer, count, currentSessionId, currentPatientName);
-        }
+        // Eliminamos HTTP para evitar bloqueos
+        // httpService.sendBatch(tempBuffer, count, currentSessionId, currentPatientName);
 
         bool mqttSuccess = mqttService.publishBatch(tempBuffer, count, currentSessionId, currentPatientName);
         if (!mqttSuccess) {
@@ -129,12 +125,14 @@ void TestManager::stopTest() {
     }
 
     if (!bufferManager.isEmpty()) {
+        /* Eliminamos HTTP
         httpService.sendBatch(
             bufferManager.getBuffer(),
             bufferManager.size(),
             currentSessionId,
             currentPatientName
         );
+        */
 
         mqttService.publishBatch(
             bufferManager.getBuffer(),

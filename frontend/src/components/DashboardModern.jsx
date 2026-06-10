@@ -6,12 +6,12 @@ import { Label } from "./ui/label";
 import { Badge } from "./ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Skeleton } from "./ui/skeleton";
-import { Search, Eye, Activity, RefreshCw, PlusCircle, User, ArrowLeft } from "lucide-react";
+import { Search, Eye, Activity, RefreshCw, PlusCircle, User, ArrowLeft, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { getSesiones } from "../services/api";
+import { getSesiones, getErrorMessage } from "../services/api";
 
-export default function DashboardModern({ onViewDetails, onNewCapture, onBack }) {
+export default function DashboardModern({ onViewDetails, onNewCapture, onBack, patientFilter = null }) {
   const [sessions, setSessions] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -25,14 +25,15 @@ export default function DashboardModern({ onViewDetails, onNewCapture, onBack })
       const mappedData = data.map(s => ({
         sessionId: s.id,
         patientName: s.patient_name || "Anónimo",
-        deviceId: s.device_id, 
+        patientId: s.patient_id || null,
+        deviceId: s.device_id,
         sampleRate: s.sample_rate_hz,
         validated: true
       }));
       setSessions(mappedData);
     } catch (err) {
       console.error("Error fetching sessions:", err);
-      setError("No se pudo conectar con el servidor.");
+      setError(getErrorMessage(err, "No se pudo cargar el historial de mediciones."));
     } finally {
       setIsLoading(false);
     }
@@ -43,11 +44,12 @@ export default function DashboardModern({ onViewDetails, onNewCapture, onBack })
   }, []);
 
   const filteredSessions = sessions.filter(session => {
+    const matchesFilter = !patientFilter || session.patientId === patientFilter;
     const matchesSearch =
       session.sessionId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       session.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       session.deviceId.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+    return matchesFilter && matchesSearch;
   });
 
   return (
@@ -64,25 +66,40 @@ export default function DashboardModern({ onViewDetails, onNewCapture, onBack })
                 <Activity className="w-10 h-10 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-black text-[#2F3E46] tracking-tight">Historial Clínico</h1>
-                <p className="text-lg text-[#3B7A57] font-semibold">Todas las mediciones del sistema</p>
+                <h1 className="text-4xl font-black text-[#2F3E46] tracking-tight">
+                  {patientFilter ? "Mis Resultados" : "Historial Clínico"}
+                </h1>
+                <p className="text-lg text-[#3B7A57] font-semibold">
+                  {patientFilter ? "Tus mediciones de temblor" : "Todas las mediciones del sistema"}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-6">
-                <Button 
+                {onNewCapture && (
+                  <Button
                     onClick={onNewCapture}
                     className="h-14 px-8 bg-[#3B7A57] hover:bg-[#2d5f43] text-lg font-bold shadow-lg gap-2"
-                >
+                  >
                     <PlusCircle size={20} /> Nueva Captura
-                </Button>
+                  </Button>
+                )}
                 <div className="h-12 w-px bg-gray-200" />
                 <div className="text-right">
-                    <p className="text-sm font-bold text-[#2F3E46]/40 uppercase tracking-tighter">Admin Principal</p>
+                    <p className="text-sm font-bold text-[#2F3E46]/40 uppercase tracking-tighter">
+                      {patientFilter ? "Mis Mediciones" : "Resumen del Sistema"}
+                    </p>
                     <p className="text-xl font-black text-[#3B7A57]">{format(new Date(), "PPP", { locale: es })}</p>
                 </div>
             </div>
           </div>
         </Card>
+
+        {/* Error */}
+        {error && (
+          <div className="flex items-center gap-3 text-red-600 bg-red-50 px-6 py-4 rounded-2xl border border-red-100 font-bold">
+            <AlertCircle size={20} className="shrink-0" /> {error}
+          </div>
+        )}
 
         {/* Search */}
         <Card className="p-6 bg-white shadow-lg">

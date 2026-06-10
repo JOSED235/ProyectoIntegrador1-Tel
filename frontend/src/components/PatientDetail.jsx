@@ -3,21 +3,25 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { ArrowLeft, User, Calendar, FileText, PlusCircle, ChevronRight, Activity } from "lucide-react";
+import { ArrowLeft, User, Calendar, FileText, PlusCircle, ChevronRight, Activity, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-import { getPatient } from "../services/api";
+import { getPatient, getErrorMessage } from "../services/api";
 
 export default function PatientDetail({ patientId, onBack, onViewSession, onNewCapture }) {
   const [patient, setPatient] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const loadPatient = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const data = await getPatient(patientId);
       setPatient(data);
     } catch (err) {
       console.error("Error loading patient details", err);
+      setPatient(null);
+      setError(getErrorMessage(err, "No se pudo cargar la información del paciente."));
     } finally {
       setIsLoading(false);
     }
@@ -28,7 +32,27 @@ export default function PatientDetail({ patientId, onBack, onViewSession, onNewC
   }, [patientId]);
 
   if (isLoading) return <div className="min-h-screen bg-[#F8FAFB] flex items-center justify-center font-black">Cargando perfil...</div>;
-  if (!patient) return <div className="p-8">Error: Paciente no encontrado</div>;
+  if (!patient) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFB] flex items-center justify-center p-8">
+        <Card className="max-w-md w-full p-8 text-center space-y-4 border-2 border-red-100">
+          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto text-red-500">
+            <AlertCircle size={32} />
+          </div>
+          <h2 className="text-2xl font-black text-[#2F3E46]">No se pudo cargar el paciente</h2>
+          <p className="text-gray-400 font-medium">{error || "Paciente no encontrado"}</p>
+          <div className="flex gap-3 justify-center pt-2">
+            <Button variant="outline" onClick={onBack} className="font-bold gap-2">
+              <ArrowLeft size={18} /> Volver
+            </Button>
+            <Button onClick={loadPatient} className="bg-[#3B7A57] hover:bg-[#2d5f43] font-bold">
+              Reintentar
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFB] p-8 font-sans animate-in">
@@ -55,12 +79,14 @@ export default function PatientDetail({ patientId, onBack, onViewSession, onNewC
                 </div>
             </div>
           </div>
-          <Button 
-            onClick={() => onNewCapture(patient.id, patient.name)}
-            className="h-16 px-10 bg-[#3B7A57] hover:bg-[#2d5f43] text-xl font-black shadow-xl gap-3 rounded-2xl"
-          >
-            <PlusCircle size={24} /> Nueva Medición
-          </Button>
+          {onNewCapture && (
+            <Button
+              onClick={() => onNewCapture()}
+              className="h-16 px-10 bg-[#3B7A57] hover:bg-[#2d5f43] text-xl font-black shadow-xl gap-3 rounded-2xl"
+            >
+              <PlusCircle size={24} /> Nueva Medición
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -106,7 +132,9 @@ export default function PatientDetail({ patientId, onBack, onViewSession, onNewC
                                     patient.sessions.map((session) => (
                                         <TableRow key={session.id} className="hover:bg-emerald-50/30 transition-colors">
                                             <TableCell className="font-bold text-gray-600">
-                                                {format(new Date(), "dd/MM/yyyy")} {/* Placeholder date */}
+                                                {session.created_at
+                                                  ? format(new Date(session.created_at), "dd/MM/yyyy HH:mm")
+                                                  : "Sin fecha"}
                                             </TableCell>
                                             <TableCell className="font-mono font-bold text-[#3B7A57]">
                                                 {session.id}

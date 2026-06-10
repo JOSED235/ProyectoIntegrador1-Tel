@@ -39,7 +39,7 @@ inline constexpr const char* WIFI_PASSWORD =  "Girare193819410";
 //ip del server en mi casa es 192.168.1.6
 
 
-inline constexpr const char* SERVER_URL =  "http://192.168.1.4:8001/captura";
+inline constexpr const char* SERVER_URL =  "http://172.18.192.1:8001/captura";
 
 // PINES
 

@@ -4,3 +4,5 @@ sqlalchemy
 python-dotenv
 psycopg2-binary
 paho-mqtt
+python-jose[cryptography]
+bcrypt

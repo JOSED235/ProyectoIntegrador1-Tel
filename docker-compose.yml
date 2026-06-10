@@ -1,0 +1,50 @@
+services:
+
+  # ── Backend FastAPI ─────────────────────────────────────────────────────────
+  api:
+    build: ./backend
+    container_name: fastapi-app
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy   # Espera a que Postgres esté listo de verdad
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/iotdb
+      - MQTT_BROKER=broker.emqx.io
+      - MQTT_PORT=1883
+      - MQTT_TOPIC=icesi/jose/esp32/data
+
+  # ── Frontend React (build Vite + Nginx) ────────────────────────────────────
+  frontend:
+    build: ./frontend
+    container_name: frontend-app
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+  # ── Base de datos PostgreSQL ────────────────────────────────────────────────
+  db:
+    image: postgres:17
+    container_name: db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: iotdb
+    ports:
+      - "127.0.0.1:5432:5432"   # Solo accesible desde la propia máquina (no exponer en internet/AWS)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d iotdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:
