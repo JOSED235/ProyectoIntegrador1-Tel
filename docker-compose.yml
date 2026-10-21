@@ -11,7 +11,7 @@ services:
       db:
         condition: service_healthy   # Espera a que Postgres esté listo de verdad
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/iotdb
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/iotdb
       - MQTT_BROKER=broker.emqx.io
       - MQTT_PORT=1883
       - MQTT_TOPIC=icesi/jose/esp32/data
