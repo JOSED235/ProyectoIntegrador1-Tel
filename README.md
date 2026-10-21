@@ -120,6 +120,8 @@ Al iniciar, el backend crea automáticamente un usuario administrador semilla:
 - **Email:** `admin@sistema.com`
 - **Contraseña:** `admin123`
 
+> Estas credenciales y el `SECRET_KEY` por defecto son solo para desarrollo local. En cualquier despliegue real, define `SECRET_KEY` en `backend/.env` (ver `backend/.env.example`) y cambia la contraseña del administrador.
+
 ### Hardware (ESP32)
 
 1. Abrir la carpeta `hardware/` en VS Code con la extensión PlatformIO.
